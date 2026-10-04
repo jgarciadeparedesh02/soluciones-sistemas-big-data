@@ -46,14 +46,14 @@ En MongoDB tenemos dos formas de relacionar la información:
 
 ### ¿Cómo lo aplicamos en Amazon?
 
-- **Variantes de Producto (Tallas, Colores y Stock) 👉 SE INCRUSTAN:**
+- **Variantes de Producto (Tallas, Colores y Stock - Se Incrustan):**
   - Cuando un comprador entra a la página del producto, el menú desplegable de colores y tallas debe cargar al instante con **una sola lectura rápida (*single seek*)**.
   - La cardinalidad es baja y acotada (1 producto suele tener entre 1 y 15 variantes). No hay riesgo de desbordar el documento.
-- **Reseñas de Clientes 👉 SE REFERENCIAN:**
+- **Reseñas de Clientes (Se Referencian):**
   - Un artículo popular en Amazon puede acumular 50.000 reseñas con fotos y comentarios largos.
   - Cada documento en MongoDB tiene un límite físico estricto de **16 MB**. Si metiéramos miles de comentarios dentro del producto, superaríamos ese límite y romperíamos el rendimiento de la tienda.
   - Por eso, las opiniones van en su propia colección `reviews`, guardando solo el `producto_id`.
-- **Líneas de Pedido 👉 SE INCRUSTAN CON FOTO FIJA (Snapshot):**
+- **Líneas de Pedido (Se Incrustan con Foto Fija - Snapshot):**
   - Si un usuario compra un Echo Dot por 64,99 € y el vendedor sube el precio mañana a 79,99 €, la factura histórica del comprador no debe alterarse. Se guarda una copia inalterable del precio en el momento de la compra.
 
 ---
