@@ -1,76 +1,51 @@
 # Práctica 01: Diseña una Base de Datos Documental con MongoDB
 
-Solución completa y entorno reproducible para la práctica de modelado documental de la **Unidad 2 (Sistemas Big Data)**.
+Solución completa explicada paso a paso para la práctica de modelado documental de la **Unidad 2 (Sistemas Big Data)**, conectándonos directamente a un clúster de **MongoDB Atlas** en la nube.
 
 ---
 
-## 1. Escenario Elegido: Catálogo de Comercio Electrónico Variable
+## 1. Conexión Rápida al Clúster
 
-Se modela una tienda digital con:
-- **Productos con variantes y especificaciones polimórficas** (electrónica, ropa, hogar, deportes).
-- **Usuarios y direcciones de entrega.**
-- **Reseñas referenciadas.**
-- **Pedidos con snapshot de precios** para consistencia histórica.
-
----
-
-## 2. Puesta en Marcha con Docker (Recomendado)
-
-El entorno incluye MongoDB 7.0 y Mongo Express (interfaz gráfica web).
+Para trabajar en esta práctica no necesitas instalar servidores locales ni utilizar Docker. Conéctate directamente con la consola oficial **`mongosh`**:
 
 ```bash
-# 1. Levantar el contenedor
-docker compose up -d
-
-# 2. Verificar que el servicio está activo
-docker compose ps
+mongosh "mongodb+srv://cluster0.kkqxxz5.mongodb.net/" --apiVersion 1 --username jgarciadeparedesh02_db_user
 ```
 
-- **MongoDB:** `localhost:27017`
-- **Mongo Express (UI Web):** [http://localhost:8081](http://localhost:8081)
-- **Credenciales Root:** `admin` / `secretpassword123`
-- **Base de datos:** `ecommerce_db`
+Una vez dentro de la terminal, selecciona la base de datos de trabajo:
 
----
-
-## 3. Orden de Ejecución de Scripts
-
-Para reproducir la práctica completa desde cero, ejecuta los scripts en este orden estricto utilizando `mongosh`:
-
-```bash
-# Conexión local estándar:
-URI="mongodb://admin:secretpassword123@localhost:27017/ecommerce_db?authSource=admin"
-
-# Paso 1: Crear colecciones y aplicar $jsonSchema de validación
-mongosh "$URI" scripts/01-colecciones-validacion.js
-
-# Paso 2: Cargar el dataset de prueba sintético
-mongosh "$URI" scripts/02-datos.js
-
-# Paso 3: Crear índices y analizar planes explain("executionStats")
-mongosh "$URI" scripts/03-indices.js
-
-# Paso 4: Ejecutar consultas de negocio y el pipeline de agregación complejo ($facet)
-mongosh "$URI" scripts/04-consultas.js
+```javascript
+use ecommerce_db;
 ```
 
 ---
 
-## 4. Estructura de Entregables
+## 2. Guía de la Solución Paso a Paso
 
-```text
-practica-01-mongodb/
-├── README.md                      # Esta guía de reproducción
-├── docker-compose.yml             # Despliegue automatizado de MongoDB 7.0 + UI Web
-├── scripts/
-│   ├── 01-colecciones-validacion.js # Creación de colecciones con $jsonSchema estricto
-│   ├── 02-datos.js                # Inserción de catálogo de prueba y relaciones
-│   ├── 03-indices.js              # Índices compuestos, de texto y explain executionStats
-│   ├── 04-consultas.js            # CRUD, paginación estable y pipeline con $facet
-│   └── 05-backup.md               # Procedimientos mongodump/restore y RBAC
-├── docs/
-│   ├── modelo.md                  # Diagrama conceptual y justificación de embedding/ref
-│   └── evidencias/                # Trazas de validación e impacto de índices
-└── datos/
-    └── README.md                  # Origen y consideraciones del dataset sintético
-```
+La solución está redactada en un lenguaje claro y accesible para alumnos de Formación Profesional, organizada en 6 pasos temáticos:
+
+1. [**Paso 1: Conexión al Clúster y Diseño del Modelo**](01-conexion-y-modelo.md)
+   - Explicación del caso de negocio de comercio electrónico.
+   - La regla de oro en MongoDB: ¿cuándo incrustar (*embedding*) y cuándo referenciar (*referencing*)?
+   - Diagrama visual de las colecciones.
+
+2. [**Paso 2: Creación de Colecciones y Validación ($jsonSchema)**](02-colecciones-y-validacion.md)
+   - Esquemas estrictos para `productos`, `usuarios`, `reviews` y `pedidos`.
+   - Prueba práctica de rechazo provocada para evidenciar cómo MongoDB bloquea datos corruptos.
+
+3. [**Paso 3: Carga de Datos de Prueba**](03-datos-de-prueba.md)
+   - Bloques listos para copiar y pegar con datos sintéticos realistas y atributos polimórficos.
+
+4. [**Paso 4: Índices y Optimización del Rendimiento**](04-indices-y-rendimiento.md)
+   - Analogía sencilla de qué es un índice.
+   - Demostración en vivo de la diferencia entre `COLLSCAN` (lento) y `IXSCAN` (rápido) con `explain("executionStats")`.
+   - Regla ESR (*Equality, Sort, Range*) e índice de texto.
+
+5. [**Paso 5: Consultas de Negocio y Agregaciones Complejas**](05-consultas-y-agregaciones.md)
+   - Operaciones CRUD, borrado lógico (*soft delete*) y paginación estable.
+   - Relaciones con `$lookup`.
+   - Cuadro de mandos analítico multidimensional con `$facet` explicado como una cadena de montaje.
+
+6. [**Paso 6: Copias de Seguridad, Seguridad y Buenas Prácticas**](06-seguridad-y-backups.md)
+   - Procedimiento de backup y restore con `mongodump` y `mongorestore` sobre Atlas.
+   - Principio de menor privilegio (RBAC) y límites arquitectónicos de MongoDB.

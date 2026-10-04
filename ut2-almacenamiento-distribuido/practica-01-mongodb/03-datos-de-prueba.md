@@ -1,23 +1,21 @@
-/**
- * PRÁCTICA 01: MODELADO CON MONGODB - SISTEMAS BIG DATA
- * Script 02: Inserción de Datos de Prueba Significativos
- * 
- * Uso:
- * mongosh "mongodb://admin:secretpassword123@localhost:27017/ecommerce_db?authSource=admin" scripts/02-datos.js
- */
+# Paso 3: Carga de Datos de Prueba
 
-const dbName = "ecommerce_db";
-const currentDb = db.getSiblingDB(dbName);
+Para que las consultas, los índices y las agregaciones que haremos más adelante tengan sentido y devuelvan resultados reales, cargamos un conjunto de datos coherente en las 4 colecciones.
 
-print("[+] Insertando dataset de prueba...");
+---
 
-// 1. Inserción de Usuarios
+## 1. Insertar Usuarios
+
+Copia y pega en `mongosh`:
+
+```javascript
+// Guardamos los IDs en variables para usarlos luego en reviews y pedidos:
 const userAdminId = new ObjectId("650000000000000000000001");
 const userJuanId = new ObjectId("650000000000000000000002");
 const userLauraId = new ObjectId("650000000000000000000003");
 const userCarlosId = new ObjectId("650000000000000000000004");
 
-currentDb.usuarios.insertMany([
+db.usuarios.insertMany([
   {
     _id: userAdminId,
     email: "admin@tiendabigdata.es",
@@ -33,7 +31,7 @@ currentDb.usuarios.insertMany([
     rol: "cliente",
     activo: true,
     direcciones: [
-      { calle: "Calle Mayor 12, 3B", ciudad: "Madrid", codigo_postal: "28013" }
+      { calle: "Calle Mayor 12", ciudad: "Madrid", codigo_postal: "28013" }
     ]
   },
   {
@@ -57,16 +55,22 @@ currentDb.usuarios.insertMany([
     ]
   }
 ]);
-print("[✔] Usuarios insertados.");
+```
 
-// 2. Inserción de Productos con atributos polimórficos y variantes
+---
+
+## 2. Insertar Productos Heterogéneos
+
+Fíjate en cómo cada producto tiene especificaciones distintas (el portátil tiene RAM y SSD; la camiseta tiene material y transpirabilidad):
+
+```javascript
 const prodLaptopId = new ObjectId("650000000000000000000101");
 const prodAuricularesId = new ObjectId("650000000000000000000102");
 const prodCamisetaId = new ObjectId("650000000000000000000103");
 const prodZapatillasId = new ObjectId("650000000000000000000104");
 const prodCafeteraId = new ObjectId("650000000000000000000105");
 
-currentDb.productos.insertMany([
+db.productos.insertMany([
   {
     _id: prodLaptopId,
     sku: "LAP-PRO-16",
@@ -158,10 +162,15 @@ currentDb.productos.insertMany([
     fecha_creacion: new Date("2024-03-10T11:00:00Z")
   }
 ]);
-print("[✔] Productos insertados.");
+```
 
-// 3. Inserción de Reseñas (Referenciadas)
-currentDb.reviews.insertMany([
+---
+
+## 3. Insertar Reseñas y Pedidos
+
+```javascript
+// 3. Reseñas vinculadas a productos y usuarios
+db.reviews.insertMany([
   {
     producto_id: prodLaptopId,
     usuario_id: userJuanId,
@@ -191,10 +200,9 @@ currentDb.reviews.insertMany([
     fecha: new Date("2024-03-12T14:15:00Z")
   }
 ]);
-print("[✔] Reviews insertadas.");
 
-// 4. Inserción de Pedidos (Con snapshot de precio)
-currentDb.pedidos.insertMany([
+// 4. Pedidos con snapshot de precios congelados
+db.pedidos.insertMany([
   {
     usuario_id: userJuanId,
     fecha_pedido: new Date("2024-02-05T11:30:00Z"),
@@ -233,6 +241,12 @@ currentDb.pedidos.insertMany([
     ]
   }
 ]);
-print("[✔] Pedidos insertados.");
+```
 
-print("[🎉] Carga de datos completada con éxito.");
+> **Verificación rápida:** Puedes comprobar cuántos documentos hay en cada colección ejecutando:
+> ```javascript
+> db.productos.countDocuments();
+> db.usuarios.countDocuments();
+> db.reviews.countDocuments();
+> db.pedidos.countDocuments();
+> ```
