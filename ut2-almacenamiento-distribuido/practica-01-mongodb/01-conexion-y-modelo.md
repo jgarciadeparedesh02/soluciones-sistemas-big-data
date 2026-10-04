@@ -25,35 +25,51 @@ use ecommerce_db;
 
 ---
 
-## 2. El Problema de Negocio: Catálogo de Comercio Electrónico
+## 2. El Problema de Negocio: Catálogo de Amazon
 
-Queremos gestionar una tienda online con productos de diferentes categorías (ordenadores, ropa, cafeteras, etc.). 
+Imaginemos que estamos diseñando la arquitectura de datos para el catálogo de **Amazon**.
 
-En una base de datos relacional tradicional (SQL), tendríamos problemas porque cada producto tiene especificaciones distintas:
-- Un ordenador tiene RAM, procesador y disco.
-- Una camiseta tiene talla, color y tejido.
+En Amazon conviven millones de artículos de categorías radicalmente distintas:
+- Un altavoz inteligente **Echo Dot** tiene micrófonos, conectividad Wi-Fi y compatibilidad con Alexa.
+- Una camiseta de **Amazon Essentials** tiene talla, color y tejido.
+- Un ordenador portátil tiene memoria RAM, procesador y disco SSD.
 
-En SQL tendríamos que crear tablas llenas de columnas vacías (`NULL`) o tablas intermedias complejas. En **MongoDB**, al ser una base de datos documental, cada producto puede tener sus propios atributos sin complicaciones.
+En una base de datos relacional tradicional (SQL), tendríamos un dilema: crear cientos de tablas intermedias o diseñar tablas gigantescas repletas de columnas vacías (`NULL`). En **MongoDB**, gracias a su modelo documental flexible, cada producto almacena únicamente los atributos que necesita.
 
 ---
 
 ## 3. La Regla de Oro en MongoDB: ¿Embeber o Referenciar?
 
-En MongoDB tenemos dos formas de relacionar datos:
+En MongoDB tenemos dos formas de relacionar la información:
 1. **Incrustar (Embeber / Subdocumentos):** Guardar un objeto o array dentro del propio documento.
 2. **Referenciar:** Guardar el dato en otra colección y guardar solo su `_id` (similar a una clave foránea).
 
-### ¿Cuándo usamos cada una en nuestra tienda?
+### ¿Cómo lo aplicamos en Amazon?
 
 - **Variantes de Producto (Tallas, Colores y Stock) 👉 SE INCRUSTAN:**
-  - Cuando un usuario entra a ver una camiseta, queremos ver todas las tallas y colores disponibles **de un solo golpe** sin hacer consultas adicionales.
-  - Una camiseta tiene pocas variantes (4 o 5 tallas). No hay riesgo de que el documento crezca sin control.
-- **Reseñas y Comentarios 👉 SE REFERENCIAN:**
-  - Si un producto se hace muy popular, podría llegar a tener 50.000 comentarios.
-  - Cada documento en MongoDB tiene un límite de tamaño máximo de **16 MB**. Si metemos miles de comentarios dentro del producto, romperíamos ese límite y la base de datos se volvería lenta.
-  - Por eso, las reseñas van en su propia colección `reviews`, guardando solo el `producto_id`.
+  - Cuando un comprador entra a la página del producto, el menú desplegable de colores y tallas debe cargar al instante con **una sola lectura rápida (*single seek*)**.
+  - La cardinalidad es baja y acotada (1 producto suele tener entre 1 y 15 variantes). No hay riesgo de desbordar el documento.
+- **Reseñas de Clientes 👉 SE REFERENCIAN:**
+  - Un artículo popular en Amazon puede acumular 50.000 reseñas con fotos y comentarios largos.
+  - Cada documento en MongoDB tiene un límite físico estricto de **16 MB**. Si metiéramos miles de comentarios dentro del producto, superaríamos ese límite y romperíamos el rendimiento de la tienda.
+  - Por eso, las opiniones van en su propia colección `reviews`, guardando solo el `producto_id`.
 - **Líneas de Pedido 👉 SE INCRUSTAN CON FOTO FIJA (Snapshot):**
-  - Cuando un cliente compra un producto a 100 €, guardamos el nombre y el precio dentro del pedido. Si el vendedor sube el precio mañana a 120 €, la factura del cliente no debe cambiar.
+  - Si un usuario compra un Echo Dot por 64,99 € y el vendedor sube el precio mañana a 79,99 €, la factura histórica del comprador no debe alterarse. Se guarda una copia inalterable del precio en el momento de la compra.
+
+---
+
+## 4. Tabla de Patrones de Acceso de Amazon
+
+En NoSQL **diseñamos la base de datos a partir de lo que el usuario hace en la pantalla**:
+
+| ¿Qué hace el usuario en Amazon? | Pantalla / Componente Web | Colección | Cómo busca y ordena MongoDB | Paginación o Límite |
+| :--- | :--- | :--- | :--- | :--- |
+| **P1. Filtra por categoría y precio** | Parrilla de catálogo lateral | `productos` | Filtra por `categoria` y rango de `precio`. Ordena por `precio: 1`. | Paginación con `skip` y `limit` (ej. 20 productos por página). |
+| **P2. Escribe en la barra de búsqueda** | Barra superior de Amazon | `productos` | Búsqueda textual mediante índice `$text` sobre el nombre. | Primeros 20 resultados más relevantes. |
+| **P3. Entra a ver un producto y elige color** | Ficha de producto (Detalle) | `productos` | Búsqueda por `_id` o `sku` exacto. Devuelve variantes en el mismo documento. | Documento único (sin paginar, respuesta inmediata). |
+| **P4. Consulta las opiniones del producto** | Sección inferior de opiniones | `reviews` | Filtra por `producto_id`. Ordena por `fecha: -1` (las más nuevas primero). | Paginación de 10 en 10 reseñas. |
+| **P5. Revisa su historial de compras** | Sección "Mis Pedidos" | `pedidos` | Filtra por `usuario_id`. Ordena por `fecha_pedido: -1`. | Paginación estable de pedidos. |
+| **P6. Panel de almacén y reposición** | Cuadro de mando logístico | `productos` | Agregación con `$facet`: calcula importe total y filtra variantes con poco stock. | Informe consolidado (un único objeto JSON). |
 
 ---
 
